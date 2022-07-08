@@ -1,0 +1,183 @@
+version: "3"
+
+services:
+
+# IDTP pgadmin start
+
+#  postgres:
+#    container_name: postgres_container
+#    image: postgres:13
+#    environment:
+#      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+#    #      PGDATA: /data/postgres
+#    volumes:
+#      - ./volume/postgres:/var/lib/postgresql/data
+#    ports:
+#      - "5432:5432"
+#    networks:
+#      - postgres
+#    restart: unless-stopped
+#
+#  pgadmin:
+#    container_name: pgadmin_container
+#    image: dpage/pgadmin4
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+#      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+#    volumes:
+#      - pgadmin:/var/lib/pgadmin
+#    ports:
+#      - "${PGADMIN_PORT:-5050}:80"
+#    networks:
+#      - postgres
+#    restart: unless-stopped
+
+# IDTP pgadmin end
+
+  web:
+    build: .docker/
+    network_mode: host
+    depends_on:
+      - localstack
+    tty: true
+    command:
+      - /bin/sh
+      - -c
+      - cd /scripts && chmod +x ./scripts.sh && ./scripts.sh
+      - cd /scripts && chmod +x ./insert-ssm.sh && ./insert-ssm.sh && ./create-queue.sh
+  localstack:
+    image: localstack/localstack:0.12.0
+    restart: always
+    ports:
+#      - "4566-4597:4566-4597"
+      - "4566:4566"
+      - "8010:8010"
+#      - "${PORT_WEB_UI-8988}:${PORT_WEB_UI-8080}"
+    environment:
+#      - SERVICES=ssm,dynamodb,s3,sqs
+      - SERVICES=lambda, dynamodb, apigateway, s3, sns, cloudwatch, ssm, stepfunctions, sqs
+      - DEBUG=${DEBUG- }
+      - DATA_DIR=/tmp/localstack/data
+      - PORT_WEB_UI=8010
+      - LAMBDA_EXECUTOR=${LAMBDA_EXECUTOR- }
+      - KINESIS_ERROR_PROBABILITY=0.01
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - DEFAULT_REGION=ap-southeast-1
+    volumes:
+      - "./volume:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  dynamodb-admin:
+    depends_on:
+      - localstack
+    image: aaronshaf/dynamodb-admin
+    ports:
+      - 8001:8001
+    environment:
+      - DYNAMO_ENDPOINT=http://localstack:4566
+
+  next-app-redis-master:
+    image: redis
+    container_name: master
+    ports:
+      - 6379:6379
+    networks:
+      - redis-replication
+    restart: always
+
+  cardredis:
+    image: redis
+    container_name: cardredis
+    environment:
+      - REDIS_PASSWORD=FiXWVSsPAJmA1y4c6E63pc9p4YgM4m0lJzTVeRZD0hyJTiYPqZD5YkToDxBHX9N2APQqhnqVXYNipIkErKByFD9Gx38rbF5vE80z28u2v9NGD9vZz6GtgnElS1yqAfMk
+    command:
+      - /bin/sh
+      - -c
+      - redis-server --requirepass "$${REDIS_PASSWORD:?REDIS_PASSWORD variable is not set}"
+    ports:
+      - "9379:6379"
+
+  next-app-redis-slave:
+    image: redis
+    container_name: slave
+    command: redis-server --slaveof master 6379
+    depends_on:
+      - next-app-redis-master
+    ports:
+      - 16379:6379
+    networks:
+      - redis-replication
+    restart: always
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=local:next-app-redis-master:6379
+#      - HTTP_USER=root
+#      - HTTP_PASSWORD=qwerty
+    ports:
+      - 8221:8081
+    networks:
+      - redis-replication
+    depends_on:
+      - next-app-redis-master
+  local-kms:
+    image: nsmithuk/local-kms
+    container_name: local-kms
+    ports:
+      - 9035:8080
+    volumes:
+      - "./volume:/data"
+
+# for visa base II start
+
+#  sftp-src:
+#    image: atmoz/sftp
+#    volumes:
+#      - "./sftp/src/upload:/home/bkash/upload"
+#      - "/home/${USER}/.ssh/id_rsa.pub:/home/bkash/.ssh/keys/id_rsa.pub"
+#    ports:
+#      - "2201:22"
+#    command: bkash:visa:1001
+#
+#  sftp-destination:
+#    image: atmoz/sftp
+#    volumes:
+#      - "./sftp/destination/upload:/home/bkash/upload"
+#      - "/home/${USER}/.ssh/id_rsa.pub:/home/bkash/.ssh/keys/id_rsa.pub"
+#    ports:
+#      - "2202:22"
+#    command: bkash:visa:1001
+#
+#  sftp-onprem:
+#    image: atmoz/sftp
+#    volumes:
+#      - "./sftp/onprem/upload:/home/bkash/upload"
+#      - "/home/${USER}/.ssh/id_rsa.pub:/home/bkash/.ssh/keys/id_rsa.pub"
+#    ports:
+#      - "2203:22"
+#    command: bkash:visa:1001
+
+# for visa base II end
+
+  mysql:
+    image: mysql:5.7
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_DATABASE: tax
+      MYSQL_USER: tax
+      MYSQL_PASSWORD: tax123
+      MYSQL_ROOT_PASSWORD: tax123
+    volumes:
+      - ./../mysql:/var/lib/mysql
+
+networks:
+  postgres:
+    driver: bridge
+  redis-replication:
+    driver: bridge
+
+volumes:
+  pgadmin:
