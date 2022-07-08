@@ -1,0 +1,19 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "internalCode",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "dev-customerapp-bkashToVisaErrorCode",
+  "KeySchema": [
+    {
+      "AttributeName": "internalCode",
+      "KeyType": "HASH"
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 10,
+    "WriteCapacityUnits": 10
+  }
+}

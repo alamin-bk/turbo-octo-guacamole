@@ -1,0 +1,19 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "id",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "dev-visa-base2ProcessedFile",
+  "KeySchema": [
+    {
+      "AttributeName": "id",
+      "KeyType": "HASH"
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 10,
+    "WriteCapacityUnits": 10
+  }
+}

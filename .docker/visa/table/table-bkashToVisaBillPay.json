@@ -1,0 +1,41 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "rrn",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "transactionStatus",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "dev-visa-bkashToVisaBillPay",
+  "KeySchema": [
+    {
+      "AttributeName": "rrn",
+      "KeyType": "HASH"
+    }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "bkashToVisaBillPay-gi-transactionStatus",
+      "KeySchema": [
+        {
+          "AttributeName": "transactionStatus",
+          "KeyType": "HASH"
+        }
+      ],
+      "Projection": {
+        "ProjectionType": "ALL"
+      },
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 10,
+        "WriteCapacityUnits": 10
+      }
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 10,
+    "WriteCapacityUnits": 10
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "scheduleHour",
+      "AttributeType": "S"
+    }
+  ],
+  "TableName": "dev-visa-bkashToVisaScheduleTime",
+  "KeySchema": [
+    {
+      "AttributeName": "scheduleHour",
+      "KeyType": "HASH"
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 10,
+    "WriteCapacityUnits": 10
+  }
+}
